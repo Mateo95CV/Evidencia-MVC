@@ -1,6 +1,8 @@
 export const tasks = {
     getTasks: `
-        SELECT * FROM tasks
+        SELECT * 
+        FROM tasks 
+        WHERE team_id = $1
     `,
     postTask: `
         INSERT INTO tasks (title, description, status, assigned_to, team_id) 
@@ -12,8 +14,8 @@ export const tasks = {
             title = COALESCE(NULLIF($1, ''), title),
             description = COALESCE(NULLIF($2, ''), description),
             status = COALESCE(NULLIF($3, ''), status),
-            assigned_to = COALESCE(NULLIF($4, ''), assigned_to),
-            team_id = COALESCE(NULLIF($5, ''), team_id)
+            assigned_to = COALESCE(NULLIF($4::text, '')::integer, assigned_to),
+            team_id = COALESCE(NULLIF($5::text, '')::integer, team_id)
         WHERE id = $6 RETURNING *   
     `,
     deleteTask: `
