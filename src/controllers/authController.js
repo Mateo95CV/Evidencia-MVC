@@ -1,19 +1,15 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const pool = require('../db/index.js');
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import pool from '../db/index.js';
 
 const authController = {
     register: async (req, res) => {
         try {
-            const { nombre, email, password, confirmPassword } = req.body;
+            const { nombre, email, password } = req.body;
 
             // Para que cumpla con todo
-            if (!nombre || !email || !password || !confirmPassword) {
+            if (!nombre || !email || !password ) {
                 return res.status(400).json({ error: 'Todos los campos son requeridos' });
-            }
-
-            if (password !== confirmPassword) {
-                return res.status(400).json({ error: 'Las contraseñas no coinciden' });
             }
 
             // Verifica que el usuario exista
@@ -84,7 +80,37 @@ const authController = {
     // Logout
     logout: (req, res) => {
         res.json({ mensaje: 'Sesion cerrada' });
+    },
+
+    getProfile: async (req, res) => {
+        try {
+            const result = await pool.query('SELECT id, nombre, email FROM usuarios WHERE id = $1', [req.user.id]);
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'Usuario no encontrado' });
+            }
+            res.json(result.rows[0]);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Error en el servidor' });
+        }
+    },
+
+    updateProfile: async (req, res) => {
+        try {
+            const { nombre, email } = req.body;
+            const result = await pool.query(
+                'UPDATE usuarios SET nombre = COALESCE($1, nombre), email = COALESCE($2, email) WHERE id = $3 RETURNING id, nombre, email',
+                [nombre, email, req.user.id]
+            );
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'Usuario no encontrado' });
+            }
+            res.json(result.rows[0]);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Error en el servidor' });
+        }
     }
 };
 
-module.exports = authController;
+export default authController;
